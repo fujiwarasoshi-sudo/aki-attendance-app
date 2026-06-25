@@ -1,0 +1,7 @@
+.github-pages-deploy-key
+.github-pages-deploy-key.pub
+app 2.js
+supabase-schema.sql
+PRODUCTION_SETUP.md
+_headers
+netlify.toml
