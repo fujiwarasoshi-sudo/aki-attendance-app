@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#165d4b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="あき勤怠">
+  <title>店舗シフト・勤怠管理</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css?v=14">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">別府店・日吉店</p>
+      <h1>シフト・勤怠管理</h1>
+    </div>
+    <div class="header-actions">
+      <span id="connectionBadge" class="connection-badge demo">試作モード</span>
+      <button id="logoutButton" class="header-button" hidden>ログアウト</button>
+      <button id="installButton" class="header-button" hidden>ホーム画面に追加</button>
+      <button id="monthlyScheduleButton" class="header-button">シフト一覧表</button>
+      <label class="role-switch">
+        表示
+        <select id="roleSelect">
+          <option value="employee">従業員</option>
+          <option value="manager">管理者</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <section id="authView" class="auth-view" hidden>
+    <article class="card auth-card">
+      <img src="icon.svg" alt="" class="auth-logo">
+      <p class="eyebrow">あき調剤薬局</p>
+      <h2>シフト・勤怠管理へログイン</h2>
+      <p class="muted">会社から案内されたメールアドレスとパスワードを入力してください。</p>
+      <form id="loginForm" class="form-grid">
+        <label>メールアドレス
+          <input id="loginEmail" type="email" autocomplete="username" required>
+        </label>
+        <label>パスワード
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button id="loginButton" type="submit" class="primary">ログイン</button>
+      </form>
+      <p id="loginMessage" class="form-message" role="status"></p>
+    </article>
+  </section>
+
+  <main>
+    <section id="employeeView">
+      <article class="card hero">
+        <div>
+          <p id="todayLabel" class="muted"></p>
+          <label class="employee-picker">従業員
+            <select id="employeeSelect"></select>
+          </label>
+          <p id="todayShift">2026年7月の予定を読み込んでいます。</p>
+        </div>
+        <div id="workStatus" class="status off">未出勤</div>
+      </article>
+
+      <article class="card clock-card">
+        <div class="clock">
+          <span id="currentTime">--:--:--</span>
+          <small>現在時刻</small>
+        </div>
+        <p id="locationMessage" class="location-message">打刻時にだけ位置情報を確認します。</p>
+        <div class="clock-actions">
+          <button id="clockInButton" class="primary">出勤する</button>
+          <button id="clockOutButton" class="danger" disabled>退勤する</button>
+        </div>
+        <button id="correctionButton" class="text-button">打刻漏れ・時刻修正を申請</button>
+      </article>
+
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">共有Googleスプレッドシートと同期</p>
+            <h2 id="employeeScheduleTitle">2026年7月の予定</h2>
+          </div>
+          <div class="inline-actions">
+            <select id="employeeScheduleMonth" aria-label="表示するシフト月">
+              <option value="2026-07">2026年7月</option>
+              <option value="2026-08">2026年8月</option>
+            </select>
+            <button id="requestShiftButton" class="secondary">希望を提出</button>
+          </div>
+        </div>
+        <div id="shiftList" class="shift-list"></div>
+      </article>
+
+      <article class="card privacy">
+        <h2>位置情報について</h2>
+        <p>位置情報は出勤・退勤ボタンを押した時だけ取得します。勤務中や休日の現在地は追跡しません。</p>
+      </article>
+    </section>
+
+    <section id="managerView" hidden>
+      <div class="summary-grid">
+        <article class="card metric"><span>現在出勤中</span><strong id="workingCount">2人</strong></article>
+        <article class="card metric"><span>本日の予定</span><strong>5人</strong></article>
+        <article class="card metric warning"><span>要確認</span><strong id="reviewCount">1件</strong></article>
+      </div>
+
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">リアルタイム状況</p>
+            <h2>現在出勤している従業員</h2>
+          </div>
+          <div class="inline-actions">
+            <button id="scheduleEditorButton" class="primary">シフトを作成</button>
+            <button id="laborReportButton" class="secondary">残業・労務集計</button>
+            <select id="storeFilter">
+              <option value="all">両店舗</option>
+              <option value="別府店">別府店</option>
+              <option value="日吉店">日吉店</option>
+            </select>
+          </div>
+        </div>
+        <div id="attendanceList" class="attendance-list"></div>
+      </article>
+
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">2026年7月予定</p>
+            <h2>日別シフト確認</h2>
+          </div>
+          <button id="addShiftButton" class="primary compact">シフトを追加</button>
+        </div>
+        <label class="date-picker">表示日
+          <input id="managerDate" type="date" min="2026-07-01" max="2026-12-31" value="2026-07-01">
+        </label>
+        <div id="managerShiftList" class="shift-list"></div>
+      </article>
+
+      <article class="card">
+        <h2>店舗の位置設定</h2>
+        <p class="muted">本番導入時に店舗住所から緯度・経度と打刻可能範囲を設定します。</p>
+        <div class="store-settings">
+          <label>店舗
+            <select id="settingsStore">
+              <option value="beppu">別府店</option>
+              <option value="hiyoshi">日吉店</option>
+            </select>
+          </label>
+          <label>緯度
+            <input id="settingsLatitude" type="number" step="0.000001" placeholder="例：33.284000">
+          </label>
+          <label>経度
+            <input id="settingsLongitude" type="number" step="0.000001" placeholder="例：131.491000">
+          </label>
+          <label>打刻可能範囲
+            <select id="radius">
+              <option value="50">50m</option>
+              <option value="100" selected>100m</option>
+              <option value="200">200m</option>
+            </select>
+          </label>
+          <button id="saveStoreSettingsButton" class="primary">店舗設定を保存</button>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">従業員別設定</p>
+            <h2>有給休暇管理</h2>
+            <p class="muted">付与日と付与日数を履歴として保存し、残日数を管理します。</p>
+          </div>
+        </div>
+        <div class="paid-leave-settings">
+          <label>従業員
+            <select id="leaveEmployeeSelect"></select>
+          </label>
+          <label>有給付与日
+            <input id="leaveGrantDate" type="date" value="2026-07-01">
+          </label>
+          <label>付与日数
+            <input id="leaveGrantDays" type="number" min="0" max="40" step="0.5" value="10">
+          </label>
+          <button id="saveLeaveGrantButton" class="primary">付与を登録</button>
+        </div>
+        <div class="summary-grid leave-summary">
+          <article class="metric"><span>付与合計</span><strong id="leaveGrantedTotal">0日</strong></article>
+          <article class="metric"><span>使用・承認済み</span><strong id="leaveUsedTotal">0日</strong></article>
+          <article class="metric"><span>有給残日数</span><strong id="leaveRemainingTotal">0日</strong></article>
+        </div>
+        <div class="report-table-wrap">
+          <table class="report-table leave-table">
+            <thead><tr><th>付与日</th><th>付与日数</th><th>備考</th></tr></thead>
+            <tbody id="leaveGrantHistoryBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="monthlyScheduleView" hidden>
+      <article class="card schedule-board-card">
+        <div class="section-heading">
+          <div>
+            <p id="monthlyScheduleSource" class="eyebrow">共有Googleスプレッドシート</p>
+            <h2 id="monthlyScheduleTitle">2026年7月 シフト一覧表</h2>
+            <p class="muted">横に動かすと31日まで確認できます。</p>
+          </div>
+          <div class="inline-actions">
+            <select id="monthlyScheduleMonth" aria-label="一覧表の対象月">
+              <option value="2026-07">2026年7月</option>
+              <option value="2026-08">2026年8月</option>
+            </select>
+            <button id="closeMonthlyScheduleButton" class="secondary">元の画面へ戻る</button>
+          </div>
+        </div>
+
+        <div class="schedule-legend" aria-label="シフト記号の説明">
+          <span><i class="legend-dot early"></i>早番</span>
+          <span><i class="legend-dot late"></i>遅番</span>
+          <span><i class="legend-dot off"></i>休み</span>
+          <span><i class="legend-dot beppu"></i>別府店</span>
+          <span><i class="legend-dot custom"></i>個別時間</span>
+        </div>
+
+        <div class="schedule-board-wrap">
+          <table id="monthlyScheduleTable" class="schedule-board"></table>
+        </div>
+      </article>
+    </section>
+
+    <section id="scheduleEditorView" hidden>
+      <article class="card schedule-board-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">管理者用</p>
+            <h2>月間シフト作成</h2>
+            <p class="muted">各セルで勤務区分を選び、月単位で保存します。</p>
+          </div>
+          <button id="closeScheduleEditorButton" class="secondary">管理画面へ戻る</button>
+        </div>
+
+        <div class="editor-toolbar">
+          <label>作成する月
+            <input id="scheduleEditorMonth" type="month" min="2026-07" value="2026-08">
+          </label>
+          <button id="copyPreviousMonthButton" class="secondary">前月をコピー</button>
+          <button id="clearScheduleButton" class="secondary">入力をクリア</button>
+          <button id="saveScheduleButton" class="primary">シフトを保存</button>
+        </div>
+
+        <div class="schedule-legend">
+          <span><i class="legend-dot early"></i>早</span>
+          <span><i class="legend-dot late"></i>遅</span>
+          <span><i class="legend-dot off"></i>休み</span>
+          <span><i class="legend-dot beppu"></i>別府</span>
+          <span><i class="legend-dot paid"></i>有給</span>
+          <span><i class="legend-dot custom"></i>個別時間</span>
+        </div>
+        <p class="muted">「個別時間」を選ぶと、例：9:00-14:00 のように入力できます。</p>
+
+        <div class="schedule-board-wrap editor-wrap">
+          <table id="scheduleEditorTable" class="schedule-board editor-table"></table>
+        </div>
+      </article>
+    </section>
+
+    <section id="laborReportView" hidden>
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">社労士提出用</p>
+            <h2>残業・月次勤怠集計</h2>
+            <p class="muted">所定時間や休憩ルールは、社労士確認後に調整してください。</p>
+          </div>
+          <button id="closeLaborReportButton" class="secondary">管理画面へ戻る</button>
+        </div>
+
+        <div class="labor-settings">
+          <label>対象月
+            <input id="reportMonth" type="month" value="2026-07">
+          </label>
+          <label>1日の標準所定時間
+            <select id="standardWorkMinutes">
+              <option value="420">7時間</option>
+              <option value="450">7時間30分</option>
+              <option value="480" selected>8時間</option>
+            </select>
+          </label>
+          <label>標準休憩時間
+            <select id="defaultBreakMinutes">
+              <option value="0">0分</option>
+              <option value="45">45分</option>
+              <option value="60" selected>60分</option>
+            </select>
+          </label>
+          <label>残業計算
+            <select id="overtimeRule">
+              <option value="after-shift" selected>予定退勤後のみ</option>
+              <option value="actual-minus-scheduled">実労働－所定時間</option>
+            </select>
+          </label>
+          <button id="refreshLaborReportButton" class="primary">集計する</button>
+        </div>
+        <p class="calculation-note">
+          現在の設定：早出時間は残業に含めず、予定退勤時刻を過ぎた時間だけを残業として集計します。
+        </p>
+
+        <div class="summary-grid labor-summary">
+          <article class="metric"><span>実労働時間</span><strong id="totalActualHours">0時間</strong></article>
+          <article class="metric"><span>残業時間</span><strong id="totalOvertimeHours">0時間</strong></article>
+          <article class="metric warning"><span>要確認</span><strong id="laborReviewCount">0件</strong></article>
+        </div>
+
+        <div class="export-actions">
+          <button id="exportXlsxButton" class="primary">Excelで出力</button>
+          <button id="exportCsvButton" class="secondary">CSVで出力</button>
+        </div>
+
+        <h3>従業員別集計</h3>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr><th>氏名</th><th>勤務日数</th><th>実労働</th><th>残業</th><th>要確認</th></tr>
+            </thead>
+            <tbody id="laborSummaryBody"></tbody>
+          </table>
+        </div>
+
+        <h3>日別明細</h3>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>日付</th><th>氏名</th><th>店舗</th><th>出勤</th><th>退勤</th>
+                <th>休憩</th><th>実労働</th><th>所定</th><th>予定退勤</th><th>残業</th><th>状態</th>
+              </tr>
+            </thead>
+            <tbody id="laborDetailBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="携帯用メニュー">
+    <button class="mobile-nav-button active" data-mobile-view="employee">
+      <span aria-hidden="true">⏱</span>打刻
+    </button>
+    <button class="mobile-nav-button" data-mobile-view="my-shifts">
+      <span aria-hidden="true">📅</span>自分の予定
+    </button>
+    <button class="mobile-nav-button" data-mobile-view="monthly">
+      <span aria-hidden="true">▦</span>一覧表
+    </button>
+    <button class="mobile-nav-button" data-mobile-view="manager">
+      <span aria-hidden="true">⚙</span>管理
+    </button>
+  </nav>
+
+  <dialog id="appDialog">
+    <form method="dialog">
+      <h2 id="dialogTitle"></h2>
+      <div id="dialogBody"></div>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary">閉じる</button>
+        <button id="dialogConfirm" value="confirm" class="primary">保存する</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="schedule-data.js?v=15"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="config.js?v=15"></script>
+  <script src="cloud-client.js?v=15"></script>
+  <script src="app.js?v=15"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "あき調剤薬局 シフト・勤怠管理",
+  "short_name": "あき勤怠",
+  "description": "別府店・日吉店のシフト確認と位置情報付き出退勤管理",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#165d4b",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
