@@ -80,7 +80,8 @@ function buildRows_(values, month, employeeMap) {
     const dates = row.slice(1);
     for (let employeeRow = rowIndex + 2; employeeRow < values.length; employeeRow++) {
       const name = normalizeName_(values[employeeRow][0]);
-      if (!name || name === "日付") break;
+      if (name === "日付") break;
+      if (!name) continue;
       const code = findEmployeeCode_(employeeMap, name);
       if (!code) continue;
       dates.forEach((dayText, index) => {
