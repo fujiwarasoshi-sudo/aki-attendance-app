@@ -1,4 +1,5 @@
 (function () {
+  const SOLE_ADMIN_EMPLOYEE_CODE = "fujiwara-soshi";
   const listeners = new Set();
   const state = {
     configured: false,
@@ -14,6 +15,10 @@
   };
   let client = null;
   let realtimeChannel = null;
+
+  function hasAdminAccess(profile = state.profile) {
+    return profile?.role === "admin" && profile?.employee_code === SOLE_ADMIN_EMPLOYEE_CODE;
+  }
 
   function emit() {
     listeners.forEach(listener => listener({ ...state }));
@@ -102,7 +107,7 @@
     state.profile = profileResult.data;
     state.stores = storesResult.data || [];
     state.activeSession = activeResult.data;
-    if (state.profile.role === "manager" || state.profile.role === "admin") {
+    if (hasAdminAccess()) {
       const profilesResult = await client
         .from("profiles")
         .select("id,full_name,employee_code,role,job_title")
@@ -118,7 +123,7 @@
 
   async function loadAttendanceRows() {
     if (!client || !state.session) return;
-    if (state.profile?.role !== "manager" && state.profile?.role !== "admin") {
+    if (!hasAdminAccess()) {
       state.attendanceRows = state.activeSession ? [state.activeSession] : [];
       return;
     }
@@ -175,7 +180,7 @@
 
   async function getMonthlyAttendance(year, month) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
-    if (state.profile?.role !== "manager" && state.profile?.role !== "admin") {
+    if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
     const start = new Date(Date.UTC(year, month - 1, 1)).toISOString();
@@ -247,6 +252,9 @@
 
   async function addLeaveGrant(profileId, grantDate, days, note) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
+    if (!hasAdminAccess()) {
+      throw new Error("管理者権限が必要です。");
+    }
     const { error } = await client.from("paid_leave_grants").insert({
       profile_id: profileId,
       grant_date: grantDate,
@@ -259,7 +267,7 @@
 
   async function updateStoreSettings(storeId, latitude, longitude, radiusM) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
-    if (state.profile?.role !== "manager" && state.profile?.role !== "admin") {
+    if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
     const { error } = await client
@@ -288,7 +296,7 @@
 
   async function saveMonthSchedule(monthKey, matrix) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
-    if (state.profile?.role !== "manager" && state.profile?.role !== "admin") {
+    if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
     const [year, month] = monthKey.split("-").map(Number);
@@ -322,6 +330,7 @@
     updateStoreSettings,
     getMonthSchedule,
     saveMonthSchedule,
+    hasAdminAccess,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

@@ -85,6 +85,21 @@ let dialogConfirmHandler = null;
 let scheduleDraft = null;
 let lastScheduleChangedMonth = null;
 
+function hasManagerAccess() {
+  if (!cloudMode) return true;
+  return Boolean(window.CloudAPI.hasAdminAccess?.(cloudState.profile));
+}
+
+function blockManagerAccess() {
+  employeeView.hidden = false;
+  managerView.hidden = true;
+  laborReportView.hidden = true;
+  scheduleEditorView.hidden = true;
+  roleSelect.value = "employee";
+  setMobileNavActive("employee");
+  showToast("管理画面は管理者のみ利用できます。");
+}
+
 function applyCloudEmployees() {
   if (!cloudMode || !cloudState.employeeProfiles?.length) return;
   const employees = cloudState.employeeProfiles
@@ -347,7 +362,7 @@ async function submitShiftRequest() {
 }
 
 function selectedEmployee() {
-  if (cloudMode && cloudState.profile && cloudState.profile.role === "employee") {
+  if (cloudMode && cloudState.profile && !hasManagerAccess()) {
     const normalizedName = cloudState.profile.full_name.replace(/\s/g, "");
     return scheduleData.employees.find(employee =>
       employee.name.replace(/\s/g, "") === normalizedName ||
@@ -396,7 +411,7 @@ function populateEmployees() {
     `<option value="${employee.id}">${employee.name}（${employee.role}）</option>`
   ).join("");
   employeeSelect.value = selectedEmployeeId;
-  const employeeLocked = cloudMode && cloudState.profile?.role === "employee";
+  const employeeLocked = cloudMode && !hasManagerAccess();
   employeeSelect.disabled = employeeLocked;
   employeeSelect.closest("label").hidden = employeeLocked;
 }
@@ -548,6 +563,7 @@ function renderScheduleEditor(useExistingDraft = false) {
 }
 
 function showScheduleEditor() {
+  if (!hasManagerAccess()) return blockManagerAccess();
   employeeView.hidden = true;
   managerView.hidden = true;
   monthlyScheduleView.hidden = true;
@@ -559,6 +575,10 @@ function showScheduleEditor() {
 
 function closeScheduleEditor() {
   scheduleEditorView.hidden = true;
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
   managerView.hidden = false;
   roleSelect.value = "manager";
   renderManagerSchedule();
@@ -566,6 +586,7 @@ function closeScheduleEditor() {
 }
 
 async function saveScheduleDraft() {
+  if (!hasManagerAccess()) return blockManagerAccess();
   const monthKey = scheduleEditorMonth.value;
   saveScheduleButton.disabled = true;
   saveScheduleButton.textContent = "保存中…";
@@ -619,7 +640,8 @@ function showMonthlySchedule() {
 function closeMonthlySchedule() {
   monthlyScheduleView.hidden = true;
   employeeView.hidden = previousMainView !== "employee";
-  managerView.hidden = previousMainView !== "manager";
+  managerView.hidden = previousMainView !== "manager" || !hasManagerAccess();
+  if (!hasManagerAccess()) employeeView.hidden = false;
   monthlyScheduleButton.textContent = "シフト一覧表";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -830,6 +852,7 @@ function renderLaborReport() {
 }
 
 function showLaborReport() {
+  if (!hasManagerAccess()) return blockManagerAccess();
   employeeView.hidden = true;
   managerView.hidden = true;
   monthlyScheduleView.hidden = true;
@@ -842,6 +865,10 @@ function showLaborReport() {
 
 function closeLaborReport() {
   laborReportView.hidden = true;
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
   managerView.hidden = false;
   roleSelect.value = "manager";
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -988,6 +1015,7 @@ function showMyShifts() {
 }
 
 function showManagerMobile() {
+  if (!hasManagerAccess()) return blockManagerAccess();
   monthlyScheduleView.hidden = true;
   employeeView.hidden = true;
   laborReportView.hidden = true;
@@ -1176,10 +1204,16 @@ function applyCloudState(nextState) {
 
   if (!signedIn) return;
 
-  const manager = nextState.profile.role === "manager" || nextState.profile.role === "admin";
+  const manager = hasManagerAccess();
   roleSelect.querySelector('option[value="manager"]').disabled = !manager;
   document.querySelector('[data-mobile-view="manager"]').hidden = !manager;
-  if (!manager && roleSelect.value === "manager") roleSelect.value = "employee";
+  if (!manager && roleSelect.value === "manager") {
+    roleSelect.value = "employee";
+    employeeView.hidden = false;
+    managerView.hidden = true;
+    laborReportView.hidden = true;
+    scheduleEditorView.hidden = true;
+  }
   applyCloudEmployees();
   const matchedEmployee = scheduleData.employees.find(employee =>
     employee.id === nextState.profile.employee_code ||
@@ -1217,6 +1251,10 @@ employeeSelect.addEventListener("change", event => {
 });
 roleSelect.addEventListener("change", event => {
   const manager = event.target.value === "manager";
+  if (manager && !hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
   monthlyScheduleView.hidden = true;
   laborReportView.hidden = true;
   scheduleEditorView.hidden = true;
