@@ -52,6 +52,9 @@ h2 { margin-bottom: 12px; font-size: 20px; }
 .auth-card { text-align: center; }
 .auth-card .form-grid { text-align: left; }
 .auth-logo { width: 76px; height: 76px; margin-bottom: 12px; }
+.install-card { border-left: 5px solid #16775e; }
+.install-steps { margin: 0 0 12px; padding-left: 22px; color: #29443c; }
+.install-steps li { margin: 8px 0; }
 .form-message { min-height: 24px; margin: 12px 0 0; color: #a53d3d; }
 .user-name { font-size: 12px; font-weight: 800; }
 .employee-picker, .date-picker { display: grid; gap: 6px; font-weight: 700; }

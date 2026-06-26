@@ -1,4 +1,4 @@
-const CACHE_NAME = "aki-attendance-v15";
+const CACHE_NAME = "aki-attendance-v16";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -8,7 +8,10 @@ const APP_FILES = [
   "./cloud-client.js",
   "./app.js",
   "./manifest.webmanifest",
-  "./icon.svg"
+  "./icon.svg",
+  "./icon-180.png",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", event => {

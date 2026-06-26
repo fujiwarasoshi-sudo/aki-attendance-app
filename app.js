@@ -26,6 +26,7 @@ const dialogBody = document.querySelector("#dialogBody");
 const dialogConfirm = document.querySelector("#dialogConfirm");
 const toast = document.querySelector("#toast");
 const installButton = document.querySelector("#installButton");
+const installGuideButton = document.querySelector("#installGuideButton");
 const mobileNavButtons = [...document.querySelectorAll(".mobile-nav-button")];
 const authView = document.querySelector("#authView");
 const loginForm = document.querySelector("#loginForm");
@@ -63,6 +64,20 @@ const saveStoreSettingsButton = document.querySelector("#saveStoreSettingsButton
 let selectedEmployeeId = localStorage.getItem("attendance-demo-employee") || scheduleData.employees[0].id;
 let previousMainView = "employee";
 let installPrompt = null;
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function updateInstallButtonVisibility() {
+  if (isStandaloneApp()) {
+    installButton.hidden = true;
+    if (installGuideButton) installGuideButton.hidden = true;
+    return;
+  }
+  const isSmallScreen = window.matchMedia("(max-width: 680px)").matches;
+  installButton.hidden = !(installPrompt || isSmallScreen);
+}
 let cloudState = { ...window.CloudAPI.state };
 let cloudMode = false;
 let laborReportRows = [];
@@ -989,14 +1004,25 @@ function openInstallHelp() {
   if (isIos) {
     openForm(
       "iPhoneへ追加する方法",
-      `<p>Safari下部の共有ボタンを押し、<strong>「ホーム画面に追加」</strong>を選んでください。</p>`,
+      `<ol class="install-steps">
+        <li>この画面を<strong>Safari</strong>で開きます。</li>
+        <li>下部の共有ボタン（□から↑）を押します。</li>
+        <li><strong>「ホーム画面に追加」</strong>を選びます。</li>
+        <li>名前が「あき勤怠」になっていることを確認し、<strong>追加</strong>を押します。</li>
+      </ol>
+      <p class="muted">追加後はホーム画面のアイコンから起動してください。位置情報は打刻時だけ確認します。</p>`,
       "わかりました"
     );
     return;
   }
   openForm(
-    "携帯へ追加する方法",
-    `<p>ブラウザのメニューから<strong>「ホーム画面に追加」</strong>または<strong>「アプリをインストール」</strong>を選んでください。</p>`,
+    "Androidへ追加する方法",
+    `<ol class="install-steps">
+      <li>Chromeでこの画面を開きます。</li>
+      <li>画面上に<strong>「インストール」</strong>が出た場合は押します。</li>
+      <li>出ない場合は右上メニューから<strong>「アプリをインストール」</strong>または<strong>「ホーム画面に追加」</strong>を選びます。</li>
+    </ol>
+    <p class="muted">追加後はホーム画面のアイコンから起動できます。</p>`,
     "わかりました"
   );
 }
@@ -1263,12 +1289,18 @@ installButton.addEventListener("click", async () => {
   installPrompt.prompt();
   await installPrompt.userChoice;
   installPrompt = null;
-  installButton.hidden = true;
+  updateInstallButtonVisibility();
 });
+if (installGuideButton) installGuideButton.addEventListener("click", openInstallHelp);
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
   installPrompt = event;
-  installButton.hidden = false;
+  updateInstallButtonVisibility();
+});
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  updateInstallButtonVisibility();
+  showToast("ホーム画面に追加されました。");
 });
 loginForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -1379,8 +1411,12 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./service-worker.js");
 }
 
-if (window.matchMedia("(max-width: 680px)").matches) {
-  installButton.hidden = false;
+updateInstallButtonVisibility();
+const mobileScreenQuery = window.matchMedia("(max-width: 680px)");
+if (mobileScreenQuery.addEventListener) {
+  mobileScreenQuery.addEventListener("change", updateInstallButtonVisibility);
+} else if (mobileScreenQuery.addListener) {
+  mobileScreenQuery.addListener(updateInstallButtonVisibility);
 }
 
 window.CloudAPI.subscribe(applyCloudState);
