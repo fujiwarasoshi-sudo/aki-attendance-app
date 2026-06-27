@@ -171,6 +171,22 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .metric strong { font-size: 30px; }
 .metric.warning strong { color: #b14c75; }
 .store-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.employee-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, .9fr) minmax(320px, 1.4fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+.employee-admin-form {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.employee-admin-form label { display: grid; gap: 6px; font-weight: 700; }
+.employee-profile-wrap { margin: 0; }
+.employee-profile-table { min-width: 680px; }
+.employee-profile-table .profile-action-cell { text-align: right; }
+.employee-profile-table button { min-height: 36px; padding: 7px 12px; border-radius: 10px; }
 .inline-actions, .export-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .labor-settings {
   display: grid;
@@ -349,6 +365,7 @@ dialog::backdrop { background: rgba(59, 36, 48, .5); }
   .shift-row, .attendance-row { grid-template-columns: 1fr 1fr; }
   .shift-row > :last-child, .attendance-row > :last-child { grid-column: 1 / -1; }
   .store-settings { grid-template-columns: 1fr; }
+  .employee-admin-layout { grid-template-columns: 1fr; }
   .labor-settings { grid-template-columns: 1fr; }
   .paid-leave-settings { grid-template-columns: 1fr; }
   .inline-actions, .export-actions { align-items: stretch; flex-direction: column; }

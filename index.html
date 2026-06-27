@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
   <header class="app-header">
@@ -133,6 +133,52 @@
           </div>
         </div>
         <div id="attendanceList" class="attendance-list"></div>
+      </article>
+
+      <article class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">管理者用</p>
+            <h2>従業員登録・編集</h2>
+            <p class="muted">管理者（藤原総司）のみ、従業員の氏名・社員コード・職種・所属店舗を登録できます。ログイン用メールと初期パスワードは先にSupabase Authで作成してください。</p>
+          </div>
+        </div>
+        <div class="employee-admin-layout">
+          <div class="employee-admin-form">
+            <label>登録済み従業員
+              <select id="profileSelect"></select>
+            </label>
+            <label>AuthユーザーID
+              <input id="profileAuthId" type="text" placeholder="Supabase Auth Users の User UID">
+            </label>
+            <label>氏名
+              <input id="profileFullName" type="text" placeholder="例：山田 花子">
+            </label>
+            <label>社員コード
+              <input id="profileEmployeeCode" type="text" placeholder="例：yamada-hanako">
+            </label>
+            <label>職種
+              <select id="profileJobTitle">
+                <option value="一般従事者">一般従事者</option>
+                <option value="薬剤師">薬剤師</option>
+              </select>
+            </label>
+            <label>所属店舗
+              <select id="profileHomeStore"></select>
+            </label>
+            <div class="inline-actions">
+              <button id="saveEmployeeProfileButton" class="primary" type="button">従業員情報を保存</button>
+              <button id="newEmployeeProfileButton" class="secondary" type="button">新規入力</button>
+            </div>
+            <p class="calculation-note">注意：この画面では公開アプリに秘密鍵を置かないため、メールアドレスとパスワードの作成はできません。先にSupabaseのAuthenticationでユーザーを作成し、そのUser UIDをここへ入力します。</p>
+          </div>
+          <div class="report-table-wrap employee-profile-wrap">
+            <table class="report-table employee-profile-table">
+              <thead><tr><th>氏名</th><th>社員コード</th><th>職種</th><th>所属店舗</th><th>操作</th></tr></thead>
+              <tbody id="employeeProfileListBody"></tbody>
+            </table>
+          </div>
+        </div>
       </article>
 
       <article class="card">
@@ -386,11 +432,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="schedule-data.js?v=20"></script>
+  <script src="schedule-data.js?v=21"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="config.js?v=20"></script>
-  <script src="cloud-client.js?v=20"></script>
-  <script src="app.js?v=20"></script>
+  <script src="config.js?v=21"></script>
+  <script src="cloud-client.js?v=21"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>

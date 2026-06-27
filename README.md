@@ -62,11 +62,13 @@ Supabaseを設定すると、従業員ログイン、クラウド打刻、管理
 
 1. Supabaseで新しいプロジェクトを作成する。
 2. SQL Editorで `supabase-schema.sql` を実行する。
+   従業員登録機能を使う場合は、続けて `supabase-employee-registration-policy.sql` も実行する。
 3. Authentication の Users で従業員ユーザーを作成する。
-   User Metadata に氏名と社員コードを登録する。
-4. `config.js` に Project URL と anon public key を設定する。
-5. SQL末尾の管理者設定例を使い、管理者の `role` を `admin` に変更する。
-6. `stores` テーブルへ別府店・日吉店の緯度・経度、打刻可能半径を設定する。
+   メールアドレスと初期パスワードを設定し、User UID を控える。
+4. アプリの管理画面「従業員登録・編集」で User UID、氏名、社員コード、職種、所属店舗を登録する。
+5. `config.js` に Project URL と anon public key を設定する。
+6. SQL末尾の管理者設定例を使い、管理者の `role` を `admin` に変更する。
+7. `stores` テーブルへ別府店・日吉店の緯度・経度、打刻可能半径を設定する。
 
 `config.js` へ入れるのは anon public key だけです。
 `service_role` key はアプリへ入れないでください。
@@ -80,6 +82,8 @@ Supabaseを設定すると、従業員ログイン、クラウド打刻、管理
 - 管理者画面は打刻データの変更を購読し、勤務中一覧を即時更新する。
 - 従業員は自分の勤怠だけ、管理者は全従業員の勤怠を閲覧できる。
 - 管理者は月を選び、実労働時間と残業時間を集計できる。
+- 管理者はアプリ内で従業員プロフィールを登録・編集できる。
+  ただし、秘密鍵を公開アプリに入れないため、ログイン用メール・パスワードの作成は Supabase Authentication で行う。
 - Excelには「従業員別集計」と「日別勤怠明細」の2シートを出力する。
 - 外部Excel変換ライブラリが利用できない場合も、Excel互換 `.xls` を生成する。
 

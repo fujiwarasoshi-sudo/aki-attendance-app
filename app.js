@@ -63,6 +63,15 @@ const settingsLatitude = document.querySelector("#settingsLatitude");
 const settingsLongitude = document.querySelector("#settingsLongitude");
 const settingsRadius = document.querySelector("#radius");
 const saveStoreSettingsButton = document.querySelector("#saveStoreSettingsButton");
+const profileSelect = document.querySelector("#profileSelect");
+const profileAuthId = document.querySelector("#profileAuthId");
+const profileFullName = document.querySelector("#profileFullName");
+const profileEmployeeCode = document.querySelector("#profileEmployeeCode");
+const profileJobTitle = document.querySelector("#profileJobTitle");
+const profileHomeStore = document.querySelector("#profileHomeStore");
+const saveEmployeeProfileButton = document.querySelector("#saveEmployeeProfileButton");
+const newEmployeeProfileButton = document.querySelector("#newEmployeeProfileButton");
+const employeeProfileListBody = document.querySelector("#employeeProfileListBody");
 
 let selectedEmployeeId = localStorage.getItem("attendance-demo-employee") || scheduleData.employees[0].id;
 let previousMainView = "employee";
@@ -167,11 +176,128 @@ function ensureMonthOption(monthKey) {
 
 function renderStoreSettings() {
   if (!cloudMode) return;
+  renderStoreOptions();
   const store = cloudState.stores.find(item => item.code === settingsStore.value);
   if (!store) return;
   settingsLatitude.value = store.latitude ?? "";
   settingsLongitude.value = store.longitude ?? "";
   settingsRadius.value = String(store.radius_m || 100);
+}
+
+function renderStoreOptions() {
+  if (!profileHomeStore) return;
+  const options = [
+    `<option value="">未設定</option>`,
+    ...cloudState.stores.map(store =>
+      `<option value="${escapeHtml(store.id)}">${escapeHtml(store.name)}</option>`
+    )
+  ].join("");
+  if (profileHomeStore.innerHTML !== options) {
+    const previous = profileHomeStore.value;
+    profileHomeStore.innerHTML = options;
+    profileHomeStore.value = previous;
+  }
+}
+
+function profileDisplayStore(profile) {
+  return profile.home_store?.name ||
+    cloudState.stores.find(store => store.id === profile.home_store_id)?.name ||
+    "未設定";
+}
+
+function resetEmployeeProfileForm() {
+  profileSelect.value = "";
+  profileAuthId.value = "";
+  profileAuthId.readOnly = false;
+  profileFullName.value = "";
+  profileEmployeeCode.value = "";
+  profileJobTitle.value = "一般従事者";
+  profileHomeStore.value = "";
+  saveEmployeeProfileButton.textContent = "従業員情報を保存";
+}
+
+function fillEmployeeProfileForm(profile) {
+  if (!profile) {
+    resetEmployeeProfileForm();
+    return;
+  }
+  profileSelect.value = profile.id;
+  profileAuthId.value = profile.id;
+  profileAuthId.readOnly = true;
+  profileFullName.value = profile.full_name || "";
+  profileEmployeeCode.value = profile.employee_code || "";
+  profileJobTitle.value = profile.job_title || "一般従事者";
+  profileHomeStore.value = profile.home_store_id || "";
+  saveEmployeeProfileButton.textContent = "従業員情報を更新";
+}
+
+function renderEmployeeProfiles() {
+  if (!profileSelect || !employeeProfileListBody) return;
+  renderStoreOptions();
+  const profiles = cloudMode && cloudState.employeeProfiles?.length
+    ? cloudState.employeeProfiles
+    : [];
+  profileSelect.innerHTML = [
+    `<option value="">新規登録または選択してください</option>`,
+    ...profiles.map(profile =>
+      `<option value="${escapeHtml(profile.id)}">${escapeHtml(profile.full_name)}（${escapeHtml(profile.employee_code || "社員コード未設定")}）</option>`
+    )
+  ].join("");
+  employeeProfileListBody.innerHTML = profiles.length
+    ? profiles.map(profile => `<tr>
+        <td>${escapeHtml(profile.full_name)}</td>
+        <td>${escapeHtml(profile.employee_code || "未設定")}</td>
+        <td>${escapeHtml(profile.job_title || "一般従事者")}</td>
+        <td>${escapeHtml(profileDisplayStore(profile))}</td>
+        <td class="profile-action-cell"><button class="secondary compact" type="button" data-edit-profile="${escapeHtml(profile.id)}">編集</button></td>
+      </tr>`).join("")
+    : `<tr><td colspan="5">ログイン後、従業員プロフィールが表示されます。</td></tr>`;
+  const selected = profiles.find(profile => profile.id === profileAuthId.value);
+  if (selected) fillEmployeeProfileForm(selected);
+}
+
+async function saveEmployeeProfile() {
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
+  const id = profileAuthId.value.trim();
+  const fullName = profileFullName.value.trim();
+  const employeeCode = profileEmployeeCode.value.trim();
+  const jobTitle = profileJobTitle.value;
+  const homeStoreId = profileHomeStore.value || null;
+  if (!id || !fullName || !employeeCode) {
+    showToast("AuthユーザーID、氏名、社員コードを入力してください。");
+    return;
+  }
+  if (employeeCode === "fujiwara-soshi" && id !== cloudState.profile?.id) {
+    showToast("管理者コード fujiwara-soshi は藤原総司さん専用です。");
+    return;
+  }
+  saveEmployeeProfileButton.disabled = true;
+  try {
+    if (cloudMode) {
+      await window.CloudAPI.saveEmployeeProfile({
+        id,
+        full_name: fullName,
+        employee_code: employeeCode,
+        job_title: jobTitle,
+        home_store_id: homeStoreId
+      });
+    } else {
+      showToast("従業員登録はクラウド接続後に保存できます。");
+      return;
+    }
+    showToast(`${fullName}さんの従業員情報を保存しました。`);
+    renderEmployeeProfiles();
+    applyCloudEmployees();
+    populateEmployees();
+    populateLeaveEmployees();
+  } catch (error) {
+    showToast(error.message || "従業員情報を保存できませんでした。");
+  } finally {
+    saveEmployeeProfileButton.disabled = false;
+  }
 }
 
 async function saveStoreSettings() {
@@ -1287,6 +1413,7 @@ function applyCloudState(nextState) {
   populateEmployees();
   populateLeaveEmployees();
   renderStoreSettings();
+  renderEmployeeProfiles();
   renderEmployeeSchedule();
   renderAttendance(document.querySelector("#storeFilter").value);
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -1449,6 +1576,18 @@ document.querySelector("#storeFilter").addEventListener("change", event => rende
 document.querySelector("#managerDate").addEventListener("change", renderManagerSchedule);
 settingsStore.addEventListener("change", renderStoreSettings);
 saveStoreSettingsButton.addEventListener("click", saveStoreSettings);
+profileSelect.addEventListener("change", event => {
+  const profile = cloudState.employeeProfiles.find(item => item.id === event.target.value);
+  fillEmployeeProfileForm(profile);
+});
+newEmployeeProfileButton.addEventListener("click", resetEmployeeProfileForm);
+saveEmployeeProfileButton.addEventListener("click", saveEmployeeProfile);
+employeeProfileListBody.addEventListener("click", event => {
+  const button = event.target.closest("[data-edit-profile]");
+  if (!button) return;
+  const profile = cloudState.employeeProfiles.find(item => item.id === button.dataset.editProfile);
+  fillEmployeeProfileForm(profile);
+});
 
 document.querySelector("#correctionButton").addEventListener("click", () => openForm(
   "勤怠の修正申請",

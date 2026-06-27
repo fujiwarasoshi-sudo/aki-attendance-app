@@ -110,7 +110,7 @@
     if (hasAdminAccess()) {
       const profilesResult = await client
         .from("profiles")
-        .select("id,full_name,employee_code,role,job_title")
+        .select("id,full_name,employee_code,role,job_title,home_store_id,home_store:stores!home_store_id(id,name,code)")
         .order("full_name");
       if (profilesResult.error) throw profilesResult.error;
       state.employeeProfiles = profilesResult.data || [];
@@ -281,6 +281,29 @@
     if (error) throw error;
   }
 
+  async function saveEmployeeProfile(profile) {
+    if (!client || !state.session) throw new Error("ログインが必要です。");
+    if (!hasAdminAccess()) {
+      throw new Error("管理者権限が必要です。");
+    }
+    const payload = {
+      id: profile.id,
+      full_name: profile.full_name,
+      employee_code: profile.employee_code || null,
+      role: profile.id === state.profile?.id && profile.employee_code === SOLE_ADMIN_EMPLOYEE_CODE
+        ? "admin"
+        : "employee",
+      job_title: profile.job_title || "一般従事者",
+      home_store_id: profile.home_store_id || null
+    };
+    const { error } = await client
+      .from("profiles")
+      .upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+    await loadUserContext();
+    emit();
+  }
+
   async function updateStoreSettings(storeId, latitude, longitude, radiusM) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
     if (!hasAdminAccess()) {
@@ -344,6 +367,7 @@
     getLeaveLedger,
     addLeaveGrant,
     updateLeaveGrant,
+    saveEmployeeProfile,
     updateStoreSettings,
     getMonthSchedule,
     saveMonthSchedule,
