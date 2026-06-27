@@ -98,6 +98,7 @@ let dialogConfirmHandler = null;
 let scheduleDraft = null;
 let lastScheduleChangedMonth = null;
 let editingLeaveGrantId = null;
+let lastCloudErrorMessage = null;
 
 function hasManagerAccess() {
   if (!cloudMode) return true;
@@ -124,8 +125,12 @@ function escapeHtml(value) {
 }
 
 function applyCloudEmployees() {
-  if (!cloudMode || !cloudState.employeeProfiles?.length) return;
-  const employees = cloudState.employeeProfiles
+  if (!cloudMode) return;
+  const sourceProfiles = cloudState.employeeProfiles?.length
+    ? cloudState.employeeProfiles
+    : cloudState.profile ? [cloudState.profile] : [];
+  if (!sourceProfiles.length) return;
+  const employees = sourceProfiles
     .filter(profile => profile.employee_code)
     .map(profile => ({
       id: profile.employee_code,
@@ -1387,7 +1392,12 @@ function applyCloudState(nextState) {
   if (!nextState.connected || nextState.lastError) {
     connectionBadge.classList.add("offline");
     connectionBadge.textContent = "接続エラー";
+    if (nextState.lastError && nextState.lastError !== lastCloudErrorMessage) {
+      lastCloudErrorMessage = nextState.lastError;
+      showToast(`クラウド接続エラー：${nextState.lastError}`);
+    }
   } else {
+    lastCloudErrorMessage = null;
     connectionBadge.classList.add("online");
     connectionBadge.textContent = nextState.session ? "クラウド同期中" : "ログイン待ち";
   }
