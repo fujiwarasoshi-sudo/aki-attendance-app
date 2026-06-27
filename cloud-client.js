@@ -296,17 +296,20 @@
       job_title: profile.job_title || "一般従事者",
       home_store_id: profile.home_store_id || null
     };
-    const existingProfile = state.employeeProfiles.some(item => item.id === profile.id);
     const { id, ...profileFields } = payload;
-    const { error } = existingProfile
-      ? await client
-        .from("profiles")
-        .update(profileFields)
-        .eq("id", id)
-      : await client
+    const { data: updatedRows, error: updateError } = await client
+      .from("profiles")
+      .update(profileFields)
+      .eq("id", id)
+      .select("id");
+    if (updateError) throw updateError;
+
+    if (!updatedRows?.length) {
+      const { error: insertError } = await client
         .from("profiles")
         .insert(payload);
-    if (error) throw error;
+      if (insertError) throw insertError;
+    }
     await loadUserContext();
     emit();
   }
