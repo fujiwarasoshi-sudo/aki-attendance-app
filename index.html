@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
   <header class="app-header">
@@ -181,7 +181,7 @@
           <div>
             <p class="eyebrow">従業員別設定</p>
             <h2>有給休暇管理</h2>
-            <p class="muted">付与日と付与日数を履歴として保存し、残日数を管理します。</p>
+            <p class="muted">管理者（藤原総司）のみ、付与日・付与日数を登録または編集できます。</p>
           </div>
         </div>
         <div class="paid-leave-settings">
@@ -194,7 +194,11 @@
           <label>付与日数
             <input id="leaveGrantDays" type="number" min="0" max="40" step="0.5" value="10">
           </label>
+          <label>備考
+            <input id="leaveGrantNote" type="text" placeholder="例：定期付与・調整">
+          </label>
           <button id="saveLeaveGrantButton" class="primary">付与を登録</button>
+          <button id="cancelLeaveGrantEditButton" class="secondary" type="button" hidden>編集をキャンセル</button>
         </div>
         <div class="summary-grid leave-summary">
           <article class="metric"><span>付与合計</span><strong id="leaveGrantedTotal">0日</strong></article>
@@ -203,7 +207,7 @@
         </div>
         <div class="report-table-wrap">
           <table class="report-table leave-table">
-            <thead><tr><th>付与日</th><th>付与日数</th><th>備考</th></tr></thead>
+            <thead><tr><th>付与日</th><th>付与日数</th><th>備考</th><th>操作</th></tr></thead>
             <tbody id="leaveGrantHistoryBody"></tbody>
           </table>
         </div>
@@ -382,11 +386,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="schedule-data.js?v=19"></script>
+  <script src="schedule-data.js?v=20"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="config.js?v=19"></script>
-  <script src="cloud-client.js?v=19"></script>
-  <script src="app.js?v=19"></script>
+  <script src="config.js?v=20"></script>
+  <script src="cloud-client.js?v=20"></script>
+  <script src="app.js?v=20"></script>
 </body>
 </html>

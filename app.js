@@ -45,7 +45,10 @@ const exportCsvButton = document.querySelector("#exportCsvButton");
 const leaveEmployeeSelect = document.querySelector("#leaveEmployeeSelect");
 const leaveGrantDate = document.querySelector("#leaveGrantDate");
 const leaveGrantDays = document.querySelector("#leaveGrantDays");
+const leaveGrantNote = document.querySelector("#leaveGrantNote");
 const saveLeaveGrantButton = document.querySelector("#saveLeaveGrantButton");
+const cancelLeaveGrantEditButton = document.querySelector("#cancelLeaveGrantEditButton");
+const leaveGrantHistoryBody = document.querySelector("#leaveGrantHistoryBody");
 const scheduleEditorView = document.querySelector("#scheduleEditorView");
 const scheduleEditorButton = document.querySelector("#scheduleEditorButton");
 const closeScheduleEditorButton = document.querySelector("#closeScheduleEditorButton");
@@ -84,6 +87,7 @@ let laborReportRows = [];
 let dialogConfirmHandler = null;
 let scheduleDraft = null;
 let lastScheduleChangedMonth = null;
+let editingLeaveGrantId = null;
 
 function hasManagerAccess() {
   if (!cloudMode) return true;
@@ -98,6 +102,15 @@ function blockManagerAccess() {
   roleSelect.value = "employee";
   setMobileNavActive("employee");
   showToast("管理画面は管理者のみ利用できます。");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function applyCloudEmployees() {
@@ -272,6 +285,7 @@ function getDemoLeaveLedger(employeeId) {
 }
 
 function populateLeaveEmployees() {
+  resetLeaveGrantForm();
   const employees = cloudMode && cloudState.employeeProfiles.length
     ? cloudState.employeeProfiles.map(profile => ({
         id: profile.id, name: profile.full_name, code: profile.employee_code
@@ -302,16 +316,49 @@ function renderLeaveLedger(ledger) {
   document.querySelector("#leaveGrantedTotal").textContent = `${ledger.granted}日`;
   document.querySelector("#leaveUsedTotal").textContent = `${ledger.used}日`;
   document.querySelector("#leaveRemainingTotal").textContent = `${ledger.remaining}日`;
-  document.querySelector("#leaveGrantHistoryBody").innerHTML = ledger.grants.length
+  leaveGrantHistoryBody.innerHTML = ledger.grants.length
     ? ledger.grants.map(item => `<tr>
         <td>${new Date(`${item.grant_date}T00:00:00`).toLocaleDateString("ja-JP")}</td>
         <td>${Number(item.days)}日</td>
-        <td>${item.note || "定期付与"}</td>
+        <td>${escapeHtml(item.note || "定期付与")}</td>
+        <td class="leave-action-cell">
+          <button
+            class="secondary compact"
+            type="button"
+            data-edit-leave-grant="${escapeHtml(item.id)}"
+            data-grant-date="${escapeHtml(item.grant_date)}"
+            data-days="${escapeHtml(item.days)}"
+            data-note="${escapeHtml(item.note || "")}"
+          >編集</button>
+        </td>
       </tr>`).join("")
-    : `<tr><td colspan="3">有給付与履歴はありません。</td></tr>`;
+    : `<tr><td colspan="4">有給付与履歴はありません。</td></tr>`;
+}
+
+function resetLeaveGrantForm() {
+  editingLeaveGrantId = null;
+  leaveGrantDate.value = leaveGrantDate.value || new Date().toISOString().slice(0, 10);
+  leaveGrantDays.value = "10";
+  leaveGrantNote.value = "";
+  saveLeaveGrantButton.textContent = "付与を登録";
+  cancelLeaveGrantEditButton.hidden = true;
+}
+
+function startLeaveGrantEdit(button) {
+  editingLeaveGrantId = button.dataset.editLeaveGrant;
+  leaveGrantDate.value = button.dataset.grantDate || "";
+  leaveGrantDays.value = button.dataset.days || "";
+  leaveGrantNote.value = button.dataset.note || "";
+  saveLeaveGrantButton.textContent = "付与内容を更新";
+  cancelLeaveGrantEditButton.hidden = false;
+  leaveGrantDate.focus();
 }
 
 async function saveLeaveGrant() {
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
   const employeeId = leaveEmployeeSelect.value;
   const grantDate = leaveGrantDate.value;
   const days = Number(leaveGrantDays.value);
@@ -322,16 +369,32 @@ async function saveLeaveGrant() {
   saveLeaveGrantButton.disabled = true;
   try {
     if (cloudMode) {
-      await window.CloudAPI.addLeaveGrant(employeeId, grantDate, days, "管理者による付与");
+      if (editingLeaveGrantId) {
+        await window.CloudAPI.updateLeaveGrant(editingLeaveGrantId, grantDate, days, leaveGrantNote.value || "管理者による編集");
+      } else {
+        await window.CloudAPI.addLeaveGrant(employeeId, grantDate, days, leaveGrantNote.value || "管理者による付与");
+      }
     } else {
       const grants = getDemoLeaveLedger(employeeId).grants;
-      grants.push({ id: crypto.randomUUID(), grant_date: grantDate, days, note: "管理者による付与" });
+      if (editingLeaveGrantId) {
+        const target = grants.find(item => item.id === editingLeaveGrantId);
+        if (!target) throw new Error("編集対象の有給付与履歴が見つかりません。");
+        target.grant_date = grantDate;
+        target.days = days;
+        target.note = leaveGrantNote.value || "管理者による編集";
+      } else {
+        grants.push({ id: crypto.randomUUID(), grant_date: grantDate, days, note: leaveGrantNote.value || "管理者による付与" });
+      }
       localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(grants));
     }
+    const message = editingLeaveGrantId
+      ? `${days}日の有給付与内容を更新しました。`
+      : `${days}日の有給を付与しました。`;
+    resetLeaveGrantForm();
     await loadLeaveLedger();
-    showToast(`${days}日の有給を付与しました。`);
+    showToast(message);
   } catch (error) {
-    showToast(error.message || "有給を付与できませんでした。");
+    showToast(error.message || "有給を保存できませんでした。");
   } finally {
     saveLeaveGrantButton.disabled = false;
   }
@@ -1305,8 +1368,24 @@ closeLaborReportButton.addEventListener("click", closeLaborReport);
 refreshLaborReportButton.addEventListener("click", loadLaborReport);
 exportXlsxButton.addEventListener("click", exportLaborXlsx);
 exportCsvButton.addEventListener("click", exportLaborCsv);
-leaveEmployeeSelect.addEventListener("change", loadLeaveLedger);
+leaveEmployeeSelect.addEventListener("change", () => {
+  resetLeaveGrantForm();
+  loadLeaveLedger();
+});
 saveLeaveGrantButton.addEventListener("click", saveLeaveGrant);
+cancelLeaveGrantEditButton.addEventListener("click", () => {
+  resetLeaveGrantForm();
+  showToast("有給付与の編集をキャンセルしました。");
+});
+leaveGrantHistoryBody.addEventListener("click", event => {
+  const button = event.target.closest("[data-edit-leave-grant]");
+  if (!button) return;
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
+  startLeaveGrantEdit(button);
+});
 mobileNavButtons.forEach(button => {
   button.addEventListener("click", () => {
     const view = button.dataset.mobileView;

@@ -265,6 +265,22 @@
     if (error) throw error;
   }
 
+  async function updateLeaveGrant(grantId, grantDate, days, note) {
+    if (!client || !state.session) throw new Error("ログインが必要です。");
+    if (!hasAdminAccess()) {
+      throw new Error("管理者権限が必要です。");
+    }
+    const { error } = await client
+      .from("paid_leave_grants")
+      .update({
+        grant_date: grantDate,
+        days,
+        note: note || null
+      })
+      .eq("id", grantId);
+    if (error) throw error;
+  }
+
   async function updateStoreSettings(storeId, latitude, longitude, radiusM) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
     if (!hasAdminAccess()) {
@@ -327,6 +343,7 @@
     createLeaveRequest,
     getLeaveLedger,
     addLeaveGrant,
+    updateLeaveGrant,
     updateStoreSettings,
     getMonthSchedule,
     saveMonthSchedule,

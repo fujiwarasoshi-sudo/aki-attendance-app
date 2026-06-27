@@ -181,7 +181,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 }
 .paid-leave-settings {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr auto;
+  grid-template-columns: 1.3fr 1fr .8fr 1.2fr auto auto;
   align-items: end;
   gap: 12px;
   margin: 18px 0;
@@ -189,7 +189,9 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .paid-leave-settings label { display: grid; gap: 6px; font-weight: 700; }
 .leave-summary { margin-top: 14px; }
 .leave-summary .metric { border: 1px solid var(--brand-border); box-shadow: none; }
-.leave-table { min-width: 520px; }
+.leave-table { min-width: 640px; }
+.leave-action-cell { text-align: right; }
+.leave-action-cell button { min-height: 36px; padding: 7px 12px; border-radius: 10px; }
 .calculation-note {
   padding: 12px 14px;
   border-left: 4px solid var(--brand-accent);
