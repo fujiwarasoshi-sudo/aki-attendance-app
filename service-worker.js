@@ -1,4 +1,4 @@
-const CACHE_NAME = "aki-attendance-v18";
+const CACHE_NAME = "aki-attendance-v19";
 const APP_FILES = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const APP_FILES = [
   "./cloud-client.js",
   "./app.js",
   "./manifest.webmanifest",
+  "./company-logo.png",
   "./icon.svg",
   "./icon-180.png",
   "./icon-192.png",

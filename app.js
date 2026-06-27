@@ -971,7 +971,7 @@ function exportLaborExcelXml(summaryRows, detailRows) {
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
  <Styles>
   <Style ss:ID="Default"><Alignment ss:Vertical="Center"/><Font ss:FontName="Arial"/></Style>
-  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#007A5E" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#D80A68" ss:Pattern="Solid"/></Style>
  </Styles>
  ${worksheetXml("従業員別集計", summaryRows)}
  ${worksheetXml("日別勤怠明細", detailRows)}
