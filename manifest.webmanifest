@@ -9,8 +9,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
-  "background_color": "#f4f7f6",
-  "theme_color": "#165d4b",
+  "background_color": "#f6fbf8",
+  "theme_color": "#007a5e",
   "categories": ["business", "productivity"],
   "icons": [
     {
