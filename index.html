@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
   <header class="app-header">
@@ -41,6 +41,7 @@
       <p class="eyebrow">あき調剤薬局</p>
       <h2>シフト・勤怠管理へログイン</h2>
       <p class="muted">会社から案内されたメールアドレスとパスワードを入力してください。</p>
+      <p class="muted">ログイン前は従業員・シフト表は表示されません。データはクラウドに保存されています。</p>
       <form id="loginForm" class="form-grid">
         <label>メールアドレス
           <input id="loginEmail" type="email" autocomplete="username" required>
@@ -437,11 +438,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="schedule-data.js?v=24"></script>
+  <script src="schedule-data.js?v=25"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="config.js?v=24"></script>
-  <script src="cloud-client.js?v=24"></script>
-  <script src="app.js?v=24"></script>
+  <script src="config.js?v=25"></script>
+  <script src="cloud-client.js?v=25"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>
