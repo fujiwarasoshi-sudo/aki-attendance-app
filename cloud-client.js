@@ -296,9 +296,16 @@
       job_title: profile.job_title || "一般従事者",
       home_store_id: profile.home_store_id || null
     };
-    const { error } = await client
-      .from("profiles")
-      .upsert(payload, { onConflict: "id" });
+    const existingProfile = state.employeeProfiles.some(item => item.id === profile.id);
+    const { id, ...profileFields } = payload;
+    const { error } = existingProfile
+      ? await client
+        .from("profiles")
+        .update(profileFields)
+        .eq("id", id)
+      : await client
+        .from("profiles")
+        .insert(payload);
     if (error) throw error;
     await loadUserContext();
     emit();
