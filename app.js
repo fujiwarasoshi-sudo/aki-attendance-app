@@ -58,6 +58,7 @@ const copyPreviousMonthButton = document.querySelector("#copyPreviousMonthButton
 const clearScheduleButton = document.querySelector("#clearScheduleButton");
 const employeeScheduleMonth = document.querySelector("#employeeScheduleMonth");
 const monthlyScheduleMonth = document.querySelector("#monthlyScheduleMonth");
+const monthlyScheduleStore = document.querySelector("#monthlyScheduleStore");
 const settingsStore = document.querySelector("#settingsStore");
 const settingsLatitude = document.querySelector("#settingsLatitude");
 const settingsLongitude = document.querySelector("#settingsLongitude");
@@ -131,6 +132,7 @@ function applyCloudEmployees() {
       profileId: profile.id,
       name: profile.full_name,
       role: profile.job_title || "一般従事者",
+      homeStore: getProfileHomeStoreName(profile),
       shifts: []
     }));
   if (employees.length) scheduleData.employees = employees;
@@ -678,27 +680,33 @@ function weekdayLabel(day, monthKey = "2026-07") {
 
 function renderMonthlySchedule() {
   const monthKey = monthlyScheduleMonth.value;
+  const storeFilter = monthlyScheduleStore.value;
   const { days: dayCount } = monthParts(monthKey);
   const matrix = getLocalMonthSchedule(monthKey);
   const days = Array.from({ length: dayCount }, (_, index) => index + 1);
   document.querySelector("#monthlyScheduleSource").textContent =
     "共有Googleスプレッドシートまたは管理者画面";
-  document.querySelector("#monthlyScheduleTitle").textContent = `${monthLabel(monthKey)} シフト一覧表`;
+  const storeLabel = storeFilter === "all" ? "全店舗" : storeFilter;
+  document.querySelector("#monthlyScheduleTitle").textContent = `${monthLabel(monthKey)} ${storeLabel} シフト一覧表`;
   const header = days.map(day => {
     const weekday = weekdayLabel(day, monthKey);
     const weekendClass = weekday === "日" ? "sunday" : weekday === "土" ? "saturday" : "";
     return `<th class="${weekendClass}">${day}<small class="role-label">${weekday}</small></th>`;
   }).join("");
 
-  const rows = scheduleData.employees.map(employee => {
-    const cells = (matrix[employee.id] || []).map(value =>
+  const employees = scheduleData.employees.filter(employee =>
+    storeFilter === "all" || employee.homeStore === storeFilter
+  );
+
+  const rows = employees.map(employee => {
+    const cells = days.map((_, index) => matrix[employee.id]?.[index] || "").map(value =>
       `<td class="schedule-cell ${scheduleCellClass(value)}">${value}</td>`
     ).join("");
     return `<tr>
-      <th class="name-column">${employee.name}<small class="role-label">${employee.role}</small></th>
+      <th class="name-column">${employee.name}<small class="role-label">${employee.homeStore || "所属未設定"}・${employee.role}</small></th>
       ${cells}
     </tr>`;
-  }).join("");
+  }).join("") || `<tr><td colspan="${dayCount + 1}">${storeLabel}に所属する従業員がまだ登録されていません。</td></tr>`;
 
   document.querySelector("#monthlyScheduleTable").innerHTML = `
     <thead><tr><th class="name-column">氏名</th>${header}</tr></thead>
@@ -1466,6 +1474,7 @@ copyPreviousMonthButton.addEventListener("click", copyPreviousMonth);
 clearScheduleButton.addEventListener("click", clearScheduleDraft);
 employeeScheduleMonth.addEventListener("change", renderEmployeeSchedule);
 monthlyScheduleMonth.addEventListener("change", renderMonthlySchedule);
+monthlyScheduleStore.addEventListener("change", renderMonthlySchedule);
 document.querySelector("#scheduleEditorTable").addEventListener("change", event => {
   const select = event.target.closest("select[data-employee-id]");
   if (!select) return;

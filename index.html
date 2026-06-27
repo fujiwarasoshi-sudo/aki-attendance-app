@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
   <header class="app-header">
@@ -273,6 +273,11 @@
               <option value="2026-07">2026年7月</option>
               <option value="2026-08">2026年8月</option>
             </select>
+            <select id="monthlyScheduleStore" aria-label="一覧表の対象店舗">
+              <option value="all">全店舗</option>
+              <option value="別府店">別府店</option>
+              <option value="日吉店">日吉店</option>
+            </select>
             <button id="closeMonthlyScheduleButton" class="secondary">元の画面へ戻る</button>
           </div>
         </div>
@@ -432,11 +437,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="schedule-data.js?v=22"></script>
+  <script src="schedule-data.js?v=23"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="config.js?v=22"></script>
-  <script src="cloud-client.js?v=22"></script>
-  <script src="app.js?v=22"></script>
+  <script src="config.js?v=23"></script>
+  <script src="cloud-client.js?v=23"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>
