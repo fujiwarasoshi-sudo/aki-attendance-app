@@ -5,6 +5,7 @@
     configured: false,
     connected: false,
     session: null,
+    authUser: null,
     profile: null,
     stores: [],
     activeSession: null,
@@ -45,11 +46,17 @@
       const { data, error } = await client.auth.getSession();
       if (error) throw error;
       state.session = data.session;
+      state.authUser = data.session?.user
+        ? { id: data.session.user.id, email: data.session.user.email }
+        : null;
       state.connected = true;
       if (state.session) await loadUserContext();
 
       client.auth.onAuthStateChange(async (_event, session) => {
         state.session = session;
+        state.authUser = session?.user
+          ? { id: session.user.id, email: session.user.email }
+          : null;
         if (session) await loadUserContext();
         else clearUserContext();
         emit();
@@ -64,6 +71,7 @@
 
   function clearUserContext() {
     state.profile = null;
+    state.authUser = null;
     state.stores = [];
     state.activeSession = null;
     state.attendanceRows = [];

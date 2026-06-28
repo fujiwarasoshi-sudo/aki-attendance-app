@@ -131,15 +131,21 @@ function applyCloudEmployees() {
     : cloudState.profile ? [cloudState.profile] : [];
   if (!sourceProfiles.length) return;
   const employees = sourceProfiles
-    .filter(profile => profile.employee_code)
-    .map(profile => ({
-      id: profile.employee_code,
-      profileId: profile.id,
-      name: profile.full_name,
-      role: profile.job_title || "一般従事者",
-      homeStore: getProfileHomeStoreName(profile),
-      shifts: []
-    }));
+    .filter(profile => profile.id || profile.employee_code || profile.full_name)
+    .map(profile => {
+      const isPlaceholderName = !profile.full_name || profile.full_name === "ログインユーザー";
+      return {
+        id: profile.employee_code || profile.id || "signed-in-user",
+        employeeCode: profile.employee_code || "",
+        profileId: profile.id,
+        name: isPlaceholderName
+          ? cloudState.authUser?.email || "従業員情報未設定"
+          : profile.full_name,
+        role: profile.job_title || "一般従事者",
+        homeStore: getProfileHomeStoreName(profile),
+        shifts: []
+      };
+    });
   if (employees.length) scheduleData.employees = employees;
 }
 
@@ -1436,8 +1442,12 @@ function applyCloudState(nextState) {
   if (manager && !nextState.employeeProfiles?.length) {
     showToast("従業員一覧を取得できませんでした。再読み込みしてください。");
   }
+  if (!nextState.profile.employee_code) {
+    showToast("このログインIDに社員コードが未設定です。管理者画面で社員コードを設定してください。");
+  }
   const matchedEmployee = scheduleData.employees.find(employee =>
     employee.id === nextState.profile.employee_code ||
+    employee.profileId === nextState.profile.id ||
     employee.name.replace(/\s/g, "") === nextState.profile.full_name.replace(/\s/g, "")
   );
   if (matchedEmployee) selectedEmployeeId = matchedEmployee.id;
