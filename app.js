@@ -142,7 +142,7 @@ function applyCloudEmployees() {
           ? cloudState.authUser?.email || "従業員情報未設定"
           : profile.full_name,
         role: profile.job_title || "一般従事者",
-        homeStore: getProfileHomeStoreName(profile),
+        homeStore: profileDisplayStore(profile),
         shifts: []
       };
     });
