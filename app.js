@@ -1422,6 +1422,9 @@ function applyCloudState(nextState) {
     scheduleEditorView.hidden = true;
   }
   applyCloudEmployees();
+  if (manager && !nextState.employeeProfiles?.length) {
+    showToast("従業員一覧を取得できませんでした。再読み込みしてください。");
+  }
   const matchedEmployee = scheduleData.employees.find(employee =>
     employee.id === nextState.profile.employee_code ||
     employee.name.replace(/\s/g, "") === nextState.profile.full_name.replace(/\s/g, "")
