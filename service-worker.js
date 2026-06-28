@@ -1,4 +1,4 @@
-const CACHE_NAME = "aki-attendance-v27";
+const CACHE_NAME = "aki-attendance-v28";
 const APP_FILES = [
   "./",
   "./index.html",

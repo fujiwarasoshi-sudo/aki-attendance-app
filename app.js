@@ -1405,11 +1405,22 @@ function applyCloudState(nextState) {
   const signedIn = Boolean(nextState.session && nextState.profile);
   authView.hidden = signedIn;
   mainElement.hidden = !signedIn;
-  logoutButton.hidden = !signedIn;
+  logoutButton.hidden = !nextState.session;
   monthlyScheduleButton.hidden = !signedIn;
   roleSelect.closest("label").hidden = !signedIn;
 
-  if (!signedIn) return;
+  if (!signedIn) {
+    if (nextState.session && !nextState.profile) {
+      loginMessage.textContent =
+        "ログインはできていますが、このログインIDに従業員情報が紐付いていません。管理者に従業員登録を確認してください。";
+    } else if (!nextState.session) {
+      loginMessage.textContent =
+        "従業員名・シフトを表示するには、会社から案内されたメールアドレスでログインしてください。";
+    }
+    return;
+  }
+
+  loginMessage.textContent = "";
 
   const manager = hasManagerAccess();
   roleSelect.querySelector('option[value="manager"]').disabled = !manager;

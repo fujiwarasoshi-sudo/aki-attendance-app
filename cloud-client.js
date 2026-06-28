@@ -90,7 +90,7 @@
         .from("profiles")
         .select("id, full_name, role, job_title, employee_code, home_store_id, home_store:stores!home_store_id(id,name,code)")
         .eq("id", userId)
-        .single(),
+        .maybeSingle(),
       client.from("stores").select("id,name,code,latitude,longitude,radius_m").eq("active", true).order("name"),
       client
         .from("attendance_sessions")
@@ -100,13 +100,20 @@
         .maybeSingle()
     ]);
 
-    if (profileResult.error) throw profileResult.error;
     if (storesResult.error) throw storesResult.error;
     if (activeResult.error) throw activeResult.error;
+    if (profileResult.error) throw profileResult.error;
 
     state.profile = profileResult.data;
     state.stores = storesResult.data || [];
     state.activeSession = activeResult.data;
+    if (!state.profile) {
+      state.employeeProfiles = [];
+      state.attendanceRows = [];
+      if (realtimeChannel && client) client.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      return;
+    }
     if (hasAdminAccess()) {
       const profilesResult = await client
         .from("profiles")
