@@ -174,6 +174,13 @@ function populateMonthSelectors() {
   const managerDate = document.querySelector("#managerDate");
   managerDate.min = min.toISOString().slice(0, 10);
   managerDate.max = max.toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  if (!managerDate.value ||
+      managerDate.value === "2026-07-01" ||
+      managerDate.value < managerDate.min ||
+      managerDate.value > managerDate.max) {
+    managerDate.value = today;
+  }
 }
 
 function ensureMonthOption(monthKey) {
@@ -665,6 +672,10 @@ function renderManagerSchedule() {
   const monthKey = dateValue.slice(0, 7);
   const day = Number(dateValue.split("-")[2]);
   const matrix = getLocalMonthSchedule(monthKey);
+  const plannedCount = scheduleData.employees.filter(employee =>
+    isPlannedWorkShift(matrix[employee.id]?.[day - 1] || "")
+  ).length;
+  document.querySelector("#plannedCount").textContent = `${plannedCount}人`;
   document.querySelector("#managerShiftList").innerHTML = scheduleData.employees.map(employee => {
     const detail = shiftDetails(employee, matrix[employee.id]?.[day - 1] || "");
     return `<div class="shift-row ${detail.className}">
@@ -673,6 +684,10 @@ function renderManagerSchedule() {
       <span>${detail.label}</span>
     </div>`;
   }).join("");
+}
+
+function isPlannedWorkShift(value) {
+  return Boolean(value && value !== "休み" && value !== "有給");
 }
 
 function scheduleCellClass(value) {
