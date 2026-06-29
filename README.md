@@ -63,6 +63,7 @@ Supabaseを設定すると、従業員ログイン、クラウド打刻、管理
 1. Supabaseで新しいプロジェクトを作成する。
 2. SQL Editorで `supabase-schema.sql` を実行する。
    従業員登録機能を使う場合は、続けて `supabase-employee-registration-policy.sql` も実行する。
+   有給付与の編集・削除機能を使う場合は、続けて `supabase-paid-leave-policy.sql` も実行する。
 3. Authentication の Users で従業員ユーザーを作成する。
    メールアドレスと初期パスワードを設定し、User UID を控える。
 4. アプリの管理画面「従業員登録・編集」で User UID、氏名、社員コード、職種、所属店舗を登録する。

@@ -256,18 +256,7 @@
     ]);
     if (grantsResult.error) throw grantsResult.error;
     if (requestsResult.error) throw requestsResult.error;
-    const allGrants = grantsResult.data || [];
-    const cancelledGrantIds = new Set();
-    allGrants.forEach(item => {
-      const note = String(item.note || "");
-      const match = note.match(/^削除済み:([0-9a-f-]+)/i);
-      if (match) cancelledGrantIds.add(match[1]);
-    });
-    const grants = allGrants.filter(item =>
-      Number(item.days) > 0 &&
-      !String(item.note || "").startsWith("削除済み") &&
-      !cancelledGrantIds.has(item.id)
-    );
+    const grants = grantsResult.data || [];
     const requests = requestsResult.data || [];
     const granted = grants.reduce((sum, item) => sum + Number(item.days), 0);
     const used = requests
@@ -313,51 +302,17 @@
     if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
-    if (grantId) {
-      const { data, error } = await client
-        .from("paid_leave_grants")
-        .delete()
-        .eq("id", grantId)
-        .select("id");
-      if (error) throw error;
-      if (data?.length) return;
-
-      const { data: cancelledByIdRows, error: cancelByIdError } = await client
-        .from("paid_leave_grants")
-        .update({
-          days: 0,
-          note: "削除済み（管理者による取り消し）"
-        })
-        .eq("id", grantId)
-        .select("id");
-      if (cancelByIdError) throw cancelByIdError;
-      if (cancelledByIdRows?.length) return;
-    }
-
-    const { data: cancelledRows, error: cancelError } = await client
+    const { data, error } = await client
       .from("paid_leave_grants")
-      .update({
-        days: 0,
-        note: "削除済み（管理者による取り消し）"
-      })
+      .delete()
+      .eq("id", grantId)
       .eq("profile_id", profileId)
       .eq("grant_date", grantDate)
       .eq("days", days)
       .select("id");
-    if (cancelError) throw cancelError;
-    if (cancelledRows?.length) return;
-
-    const { error: insertCancelError } = await client
-      .from("paid_leave_grants")
-      .insert({
-        profile_id: profileId,
-        grant_date: grantDate,
-        days: -Math.abs(Number(days) || 0),
-        note: `削除済み:${grantId}（管理者による取り消し）`,
-        created_by: state.session.user.id
-      });
-    if (insertCancelError) {
-      throw new Error(`削除できませんでした。Supabaseの有給付与テーブルで更新・削除・取消追加の権限を確認してください。詳細: ${insertCancelError.message}`);
+    if (error) throw error;
+    if (!data?.length) {
+      throw new Error("削除できませんでした。Supabase SQL Editorで paid_leave_grants の管理者更新・削除ポリシーを追加してください。");
     }
   }
 
