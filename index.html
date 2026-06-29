@@ -11,13 +11,13 @@
   <title>店舗シフト・勤怠管理</title>
   <script>
     if (window.location.protocol === "file:") {
-      window.location.replace("https://fujiwarasoshi-sudo.github.io/aki-attendance-app/index.html?fresh=31");
+      window.location.replace("https://fujiwarasoshi-sudo.github.io/aki-attendance-app/index.html?fresh=33");
     }
   </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=31">
+  <link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body>
   <header class="app-header">
@@ -203,7 +203,7 @@
 
       <article class="card">
         <h2>店舗の位置設定</h2>
-        <p class="muted">本番導入時に店舗住所から緯度・経度と打刻可能範囲を設定します。</p>
+        <p class="muted">管理者が店舗内で「現在地を入力」を押すと、スマホやPCの位置情報を使って緯度・経度を設定できます。</p>
         <div class="store-settings">
           <label>店舗
             <select id="settingsStore">
@@ -219,11 +219,13 @@
           </label>
           <label>打刻可能範囲
             <select id="radius">
+              <option value="30">30m</option>
               <option value="50">50m</option>
               <option value="100" selected>100m</option>
               <option value="200">200m</option>
             </select>
           </label>
+          <button id="useCurrentLocationButton" class="secondary" type="button">現在地を入力</button>
           <button id="saveStoreSettingsButton" class="primary">店舗設定を保存</button>
         </div>
       </article>
@@ -443,11 +445,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="schedule-data.js?v=31"></script>
+  <script src="schedule-data.js?v=33"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="config.js?v=31"></script>
-  <script src="cloud-client.js?v=31"></script>
-  <script src="app.js?v=31"></script>
+  <script src="config.js?v=33"></script>
+  <script src="cloud-client.js?v=33"></script>
+  <script src="app.js?v=33"></script>
 </body>
 </html>

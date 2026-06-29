@@ -280,7 +280,7 @@
     if (error) throw error;
   }
 
-  async function updateLeaveGrant(grantId, grantDate, days, note) {
+  async function updateLeaveGrant(grantId, profileId, grantDate, days, note) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
     if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
@@ -288,10 +288,23 @@
     const { error } = await client
       .from("paid_leave_grants")
       .update({
+        profile_id: profileId,
         grant_date: grantDate,
         days,
         note: note || null
       })
+      .eq("id", grantId);
+    if (error) throw error;
+  }
+
+  async function deleteLeaveGrant(grantId) {
+    if (!client || !state.session) throw new Error("ログインが必要です。");
+    if (!hasAdminAccess()) {
+      throw new Error("管理者権限が必要です。");
+    }
+    const { error } = await client
+      .from("paid_leave_grants")
+      .delete()
       .eq("id", grantId);
     if (error) throw error;
   }
@@ -392,6 +405,7 @@
     getLeaveLedger,
     addLeaveGrant,
     updateLeaveGrant,
+    deleteLeaveGrant,
     saveEmployeeProfile,
     updateStoreSettings,
     getMonthSchedule,

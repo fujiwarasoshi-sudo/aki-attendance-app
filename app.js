@@ -63,6 +63,7 @@ const settingsStore = document.querySelector("#settingsStore");
 const settingsLatitude = document.querySelector("#settingsLatitude");
 const settingsLongitude = document.querySelector("#settingsLongitude");
 const settingsRadius = document.querySelector("#radius");
+const useCurrentLocationButton = document.querySelector("#useCurrentLocationButton");
 const saveStoreSettingsButton = document.querySelector("#saveStoreSettingsButton");
 const profileSelect = document.querySelector("#profileSelect");
 const profileAuthId = document.querySelector("#profileAuthId");
@@ -98,6 +99,7 @@ let dialogConfirmHandler = null;
 let scheduleDraft = null;
 let lastScheduleChangedMonth = null;
 let editingLeaveGrantId = null;
+let editingLeaveGrantEmployeeId = null;
 let lastCloudErrorMessage = null;
 
 function hasManagerAccess() {
@@ -413,6 +415,39 @@ async function syncMonthFromCloud(monthKey) {
   }
 }
 
+function fillStoreLocationFromCurrentPosition() {
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
+  if (!navigator.geolocation) {
+    showToast("この端末では位置情報を取得できません。");
+    return;
+  }
+  useCurrentLocationButton.disabled = true;
+  useCurrentLocationButton.textContent = "取得中…";
+  showToast("店舗内で現在地を取得しています。");
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      settingsLatitude.value = position.coords.latitude.toFixed(6);
+      settingsLongitude.value = position.coords.longitude.toFixed(6);
+      if (!settingsRadius.value || Number(settingsRadius.value) > 100) {
+        settingsRadius.value = "50";
+      }
+      const accuracy = Math.round(position.coords.accuracy);
+      showToast(`現在地を入力しました（端末精度 約${accuracy}m）。保存してください。`);
+      useCurrentLocationButton.disabled = false;
+      useCurrentLocationButton.textContent = "現在地を入力";
+    },
+    () => {
+      showToast("位置情報を取得できませんでした。端末の位置情報許可を確認してください。");
+      useCurrentLocationButton.disabled = false;
+      useCurrentLocationButton.textContent = "現在地を入力";
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
 function demoLeaveStorageKey(employeeId) {
   return `attendance-demo-leave-${employeeId}`;
 }
@@ -476,6 +511,13 @@ function renderLeaveLedger(ledger) {
             data-days="${escapeHtml(item.days)}"
             data-note="${escapeHtml(item.note || "")}"
           >編集</button>
+          <button
+            class="danger compact"
+            type="button"
+            data-delete-leave-grant="${escapeHtml(item.id)}"
+            data-days="${escapeHtml(item.days)}"
+            data-grant-date="${escapeHtml(item.grant_date)}"
+          >削除</button>
         </td>
       </tr>`).join("")
     : `<tr><td colspan="4">有給付与履歴はありません。</td></tr>`;
@@ -483,6 +525,7 @@ function renderLeaveLedger(ledger) {
 
 function resetLeaveGrantForm() {
   editingLeaveGrantId = null;
+  editingLeaveGrantEmployeeId = null;
   leaveGrantDate.value = leaveGrantDate.value || new Date().toISOString().slice(0, 10);
   leaveGrantDays.value = "10";
   leaveGrantNote.value = "";
@@ -492,11 +535,13 @@ function resetLeaveGrantForm() {
 
 function startLeaveGrantEdit(button) {
   editingLeaveGrantId = button.dataset.editLeaveGrant;
+  editingLeaveGrantEmployeeId = leaveEmployeeSelect.value;
   leaveGrantDate.value = button.dataset.grantDate || "";
   leaveGrantDays.value = button.dataset.days || "";
   leaveGrantNote.value = button.dataset.note || "";
   saveLeaveGrantButton.textContent = "付与内容を更新";
   cancelLeaveGrantEditButton.hidden = false;
+  showToast("編集中です。従業員を変更して保存すると、付与先も変更できます。");
   leaveGrantDate.focus();
 }
 
@@ -516,22 +561,34 @@ async function saveLeaveGrant() {
   try {
     if (cloudMode) {
       if (editingLeaveGrantId) {
-        await window.CloudAPI.updateLeaveGrant(editingLeaveGrantId, grantDate, days, leaveGrantNote.value || "管理者による編集");
+        await window.CloudAPI.updateLeaveGrant(editingLeaveGrantId, employeeId, grantDate, days, leaveGrantNote.value || "管理者による編集");
       } else {
         await window.CloudAPI.addLeaveGrant(employeeId, grantDate, days, leaveGrantNote.value || "管理者による付与");
       }
     } else {
-      const grants = getDemoLeaveLedger(employeeId).grants;
       if (editingLeaveGrantId) {
-        const target = grants.find(item => item.id === editingLeaveGrantId);
+        const originalEmployeeId = editingLeaveGrantEmployeeId || employeeId;
+        const originalGrants = getDemoLeaveLedger(originalEmployeeId).grants;
+        const target = originalGrants.find(item => item.id === editingLeaveGrantId);
         if (!target) throw new Error("編集対象の有給付与履歴が見つかりません。");
         target.grant_date = grantDate;
         target.days = days;
         target.note = leaveGrantNote.value || "管理者による編集";
+        if (employeeId !== originalEmployeeId) {
+          const movedGrant = { ...target };
+          const keptOriginalGrants = originalGrants.filter(item => item.id !== editingLeaveGrantId);
+          const targetGrants = getDemoLeaveLedger(employeeId).grants;
+          targetGrants.push(movedGrant);
+          localStorage.setItem(demoLeaveStorageKey(originalEmployeeId), JSON.stringify(keptOriginalGrants));
+          localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(targetGrants));
+        } else {
+          localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(originalGrants));
+        }
       } else {
+        const grants = getDemoLeaveLedger(employeeId).grants;
         grants.push({ id: crypto.randomUUID(), grant_date: grantDate, days, note: leaveGrantNote.value || "管理者による付与" });
+        localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(grants));
       }
-      localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(grants));
     }
     const message = editingLeaveGrantId
       ? `${days}日の有給付与内容を更新しました。`
@@ -543,6 +600,33 @@ async function saveLeaveGrant() {
     showToast(error.message || "有給を保存できませんでした。");
   } finally {
     saveLeaveGrantButton.disabled = false;
+  }
+}
+
+async function deleteLeaveGrant(button) {
+  if (!hasManagerAccess()) {
+    blockManagerAccess();
+    return;
+  }
+  const grantId = button.dataset.deleteLeaveGrant;
+  const employeeId = leaveEmployeeSelect.value;
+  const days = Number(button.dataset.days || 0);
+  const grantDate = button.dataset.grantDate || "";
+  const ok = window.confirm(`${grantDate} の有給付与 ${days}日を削除します。よろしいですか？`);
+  if (!ok) return;
+  try {
+    if (cloudMode) {
+      await window.CloudAPI.deleteLeaveGrant(grantId);
+    } else {
+      const grants = getDemoLeaveLedger(employeeId).grants
+        .filter(item => item.id !== grantId);
+      localStorage.setItem(demoLeaveStorageKey(employeeId), JSON.stringify(grants));
+    }
+    if (editingLeaveGrantId === grantId) resetLeaveGrantForm();
+    await loadLeaveLedger();
+    showToast("有給付与履歴を削除しました。");
+  } catch (error) {
+    showToast(error.message || "有給付与履歴を削除できませんでした。");
   }
 }
 
@@ -1554,6 +1638,10 @@ refreshLaborReportButton.addEventListener("click", loadLaborReport);
 exportXlsxButton.addEventListener("click", exportLaborXlsx);
 exportCsvButton.addEventListener("click", exportLaborCsv);
 leaveEmployeeSelect.addEventListener("change", () => {
+  if (editingLeaveGrantId) {
+    showToast("編集中の付与先を変更しました。保存すると新しい従業員へ反映されます。");
+    return;
+  }
   resetLeaveGrantForm();
   loadLeaveLedger();
 });
@@ -1563,6 +1651,11 @@ cancelLeaveGrantEditButton.addEventListener("click", () => {
   showToast("有給付与の編集をキャンセルしました。");
 });
 leaveGrantHistoryBody.addEventListener("click", event => {
+  const deleteButton = event.target.closest("[data-delete-leave-grant]");
+  if (deleteButton) {
+    deleteLeaveGrant(deleteButton);
+    return;
+  }
   const button = event.target.closest("[data-edit-leave-grant]");
   if (!button) return;
   if (!hasManagerAccess()) {
@@ -1633,6 +1726,7 @@ clockOutButton.addEventListener("click", () => getLocation("out"));
 document.querySelector("#storeFilter").addEventListener("change", event => renderAttendance(event.target.value));
 document.querySelector("#managerDate").addEventListener("change", renderManagerSchedule);
 settingsStore.addEventListener("change", renderStoreSettings);
+useCurrentLocationButton.addEventListener("click", fillStoreLocationFromCurrentPosition);
 saveStoreSettingsButton.addEventListener("click", saveStoreSettings);
 profileSelect.addEventListener("change", event => {
   const profile = cloudState.employeeProfiles.find(item => item.id === event.target.value);
