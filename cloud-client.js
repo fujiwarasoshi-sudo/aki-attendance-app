@@ -256,8 +256,17 @@
     ]);
     if (grantsResult.error) throw grantsResult.error;
     if (requestsResult.error) throw requestsResult.error;
-    const grants = (grantsResult.data || []).filter(item =>
-      Number(item.days) > 0 && !String(item.note || "").startsWith("削除済み")
+    const allGrants = grantsResult.data || [];
+    const cancelledGrantIds = new Set();
+    allGrants.forEach(item => {
+      const note = String(item.note || "");
+      const match = note.match(/^削除済み:([0-9a-f-]+)/i);
+      if (match) cancelledGrantIds.add(match[1]);
+    });
+    const grants = allGrants.filter(item =>
+      Number(item.days) > 0 &&
+      !String(item.note || "").startsWith("削除済み") &&
+      !cancelledGrantIds.has(item.id)
     );
     const requests = requestsResult.data || [];
     const granted = grants.reduce((sum, item) => sum + Number(item.days), 0);
@@ -336,8 +345,19 @@
       .eq("days", days)
       .select("id");
     if (cancelError) throw cancelError;
-    if (!cancelledRows?.length) {
-      throw new Error("削除対象の有給付与履歴が見つからない、または削除権限がありません。");
+    if (cancelledRows?.length) return;
+
+    const { error: insertCancelError } = await client
+      .from("paid_leave_grants")
+      .insert({
+        profile_id: profileId,
+        grant_date: grantDate,
+        days: -Math.abs(Number(days) || 0),
+        note: `削除済み:${grantId}（管理者による取り消し）`,
+        created_by: state.session.user.id
+      });
+    if (insertCancelError) {
+      throw new Error(`削除できませんでした。Supabaseの有給付与テーブルで更新・削除・取消追加の権限を確認してください。詳細: ${insertCancelError.message}`);
     }
   }
 
