@@ -457,7 +457,8 @@ function demoLeaveRequestsKey(employeeId) {
 }
 
 function getDemoLeaveLedger(employeeId) {
-  const grants = JSON.parse(localStorage.getItem(demoLeaveStorageKey(employeeId)) || "[]");
+  const grants = JSON.parse(localStorage.getItem(demoLeaveStorageKey(employeeId)) || "[]")
+    .filter(item => Number(item.days) > 0 && !String(item.note || "").startsWith("削除済み"));
   const requests = JSON.parse(localStorage.getItem(demoLeaveRequestsKey(employeeId)) || "[]");
   const granted = grants.reduce((sum, item) => sum + Number(item.days), 0);
   const used = requests.filter(item => item.status === "approved")

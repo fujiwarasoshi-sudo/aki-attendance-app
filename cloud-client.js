@@ -256,7 +256,9 @@
     ]);
     if (grantsResult.error) throw grantsResult.error;
     if (requestsResult.error) throw requestsResult.error;
-    const grants = grantsResult.data || [];
+    const grants = (grantsResult.data || []).filter(item =>
+      Number(item.days) > 0 && !String(item.note || "").startsWith("削除済み")
+    );
     const requests = requestsResult.data || [];
     const granted = grants.reduce((sum, item) => sum + Number(item.days), 0);
     const used = requests
@@ -302,11 +304,26 @@
     if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
-    const { error } = await client
+    const { data, error } = await client
       .from("paid_leave_grants")
       .delete()
-      .eq("id", grantId);
+      .eq("id", grantId)
+      .select("id");
     if (error) throw error;
+    if (data?.length) return;
+
+    const { data: cancelledRows, error: cancelError } = await client
+      .from("paid_leave_grants")
+      .update({
+        days: 0,
+        note: "削除済み（管理者による取り消し）"
+      })
+      .eq("id", grantId)
+      .select("id");
+    if (cancelError) throw cancelError;
+    if (!cancelledRows?.length) {
+      throw new Error("削除対象の有給付与履歴が見つからない、または削除権限がありません。");
+    }
   }
 
   async function saveEmployeeProfile(profile) {
