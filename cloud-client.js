@@ -246,7 +246,7 @@
     if (!client || !state.session) throw new Error("ログインが必要です。");
     const [grantsResult, requestsResult] = await Promise.all([
       client.from("paid_leave_grants")
-        .select("id,grant_date,days,note,created_at")
+        .select("id,profile_id,grant_date,days,note,created_at")
         .eq("profile_id", profileId)
         .order("grant_date", { ascending: false }),
       client.from("leave_requests")
@@ -299,18 +299,31 @@
     if (error) throw error;
   }
 
-  async function deleteLeaveGrant(grantId) {
+  async function deleteLeaveGrant(grantId, profileId, grantDate, days) {
     if (!client || !state.session) throw new Error("ログインが必要です。");
     if (!hasAdminAccess()) {
       throw new Error("管理者権限が必要です。");
     }
-    const { data, error } = await client
-      .from("paid_leave_grants")
-      .delete()
-      .eq("id", grantId)
-      .select("id");
-    if (error) throw error;
-    if (data?.length) return;
+    if (grantId) {
+      const { data, error } = await client
+        .from("paid_leave_grants")
+        .delete()
+        .eq("id", grantId)
+        .select("id");
+      if (error) throw error;
+      if (data?.length) return;
+
+      const { data: cancelledByIdRows, error: cancelByIdError } = await client
+        .from("paid_leave_grants")
+        .update({
+          days: 0,
+          note: "削除済み（管理者による取り消し）"
+        })
+        .eq("id", grantId)
+        .select("id");
+      if (cancelByIdError) throw cancelByIdError;
+      if (cancelledByIdRows?.length) return;
+    }
 
     const { data: cancelledRows, error: cancelError } = await client
       .from("paid_leave_grants")
@@ -318,7 +331,9 @@
         days: 0,
         note: "削除済み（管理者による取り消し）"
       })
-      .eq("id", grantId)
+      .eq("profile_id", profileId)
+      .eq("grant_date", grantDate)
+      .eq("days", days)
       .select("id");
     if (cancelError) throw cancelError;
     if (!cancelledRows?.length) {

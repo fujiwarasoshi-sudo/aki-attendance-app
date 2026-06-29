@@ -516,6 +516,7 @@ function renderLeaveLedger(ledger) {
             class="danger compact"
             type="button"
             data-delete-leave-grant="${escapeHtml(item.id)}"
+            data-profile-id="${escapeHtml(item.profile_id || leaveEmployeeSelect.value)}"
             data-days="${escapeHtml(item.days)}"
             data-grant-date="${escapeHtml(item.grant_date)}"
           >削除</button>
@@ -610,14 +611,14 @@ async function deleteLeaveGrant(button) {
     return;
   }
   const grantId = button.dataset.deleteLeaveGrant;
-  const employeeId = leaveEmployeeSelect.value;
+  const employeeId = button.dataset.profileId || leaveEmployeeSelect.value;
   const days = Number(button.dataset.days || 0);
   const grantDate = button.dataset.grantDate || "";
   const ok = window.confirm(`${grantDate} の有給付与 ${days}日を削除します。よろしいですか？`);
   if (!ok) return;
   try {
     if (cloudMode) {
-      await window.CloudAPI.deleteLeaveGrant(grantId);
+      await window.CloudAPI.deleteLeaveGrant(grantId, employeeId, grantDate, days);
     } else {
       const grants = getDemoLeaveLedger(employeeId).grants
         .filter(item => item.id !== grantId);
